@@ -58,3 +58,7 @@ monitors:
 Protected by basic auth configured in YAML.
 
 See [todo.md](todo.md) for the full task list.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
