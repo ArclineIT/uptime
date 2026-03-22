@@ -1,0 +1,98 @@
+global:
+  check_interval: 60      # seconds between checks (global default)
+  timeout: 10             # seconds per probe (global default)
+  alert_cooldown: 300     # seconds between repeat alerts for a sustained outage
+  retention_days: 90      # delete check records older than this (0 = keep forever)
+  log_format: text        # "text" or "json"
+
+alerts:
+  - name: discord-ops
+    type: discord
+    webhook_url: "https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
+
+  - name: email-blake
+    type: email
+    smtp_host: mail.arclineit.com
+    smtp_port: 587
+    from: alerts@arclineit.com
+    to:
+      - blake@arclineit.com
+      - oncall@arclineit.com
+    username: alerts@arclineit.com
+    password: yourpassword
+
+  - name: ntfy-push
+    type: ntfy
+    url: "https://ntfy.sh/arcline-alerts"
+    token: ""   # optional bearer token for private ntfy servers
+
+  - name: gotify-push
+    type: gotify
+    url: "https://gotify.arclineit.com"
+    token: "your-app-token"
+    priority: 7   # 1–10; defaults to 5
+
+monitors:
+  - name: "Main Website"
+    type: http
+    url: "https://arclineit.com"
+    expected_status: 200
+    contains: "[arcline]"          # optional: assert string appears in response body
+    max_response_ms: 3000          # alert if response takes longer than 3s
+    interval: 60
+    alert_names: [discord-ops, email-blake]
+
+  - name: "Control Panel"
+    type: http
+    url: "https://cp.arclineit.com"
+    expected_status: 200
+    interval: 60
+
+  - name: "API Health Check"
+    type: http
+    url: "https://api.arclineit.com/health"
+    method: POST
+    body: '{"ping":true}'
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer your-api-token"
+    expected_status: 200
+
+  - name: "SSH"
+    type: tcp
+    host: "server1.arclineit.com"
+    port: 22
+    interval: 30          # check SSH more frequently
+
+  - name: "Mail Server"
+    type: tcp
+    host: "mail.arclineit.com"
+    port: 587
+
+  - name: "Main Website TLS"
+    type: tls
+    host: "arclineit.com"
+    port: 443
+    expiry_warning_days: 21      # alert when cert expires in < 21 days
+    interval: 3600               # check TLS once per hour
+
+  - name: "DNS arclineit.com"
+    type: dns
+    host: "arclineit.com"
+    expected_ip: "203.0.113.10"  # optional: assert this IP is in the results
+
+  - name: "Backup Server SSH"
+    type: tcp
+    host: "backup.arclineit.com"
+    port: 22
+    alert_names: [email-blake]   # only notify via email for this one
+    maintenance:
+      - days: [sat, sun]         # suppress alerts on weekends
+        start: "02:00"
+        end: "06:00"
+
+dashboard:
+  enabled: true
+  listen: ":8081"
+  username: admin
+  password: changeme
