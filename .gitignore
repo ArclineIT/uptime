@@ -1,0 +1,15 @@
+# Binary
+/arcline-uptime
+/arcline-uptime-linux-amd64
+/arcline-uptime-linux-arm64
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Config (keep the example, ignore real configs)
+uptime.yaml
+
+# Go
+vendor/
