@@ -1,237 +1,154 @@
-# arcline-uptime
+# Arcline Uptime
 
-Lightweight uptime monitor for HTTP and TCP endpoints. Polls on a schedule, stores results in SQLite, sends alerts via Discord, Slack, email, ntfy, or Gotify. Includes an embedded web dashboard.
+Lightweight uptime monitor for HTTP, TCP, TLS and DNS endpoints. It checks on a
+schedule, stores results in SQLite, and alerts through Discord, Slack, email,
+ntfy or Gotify. It includes a dashboard, a public status page and a Prometheus
+endpoint.
 
-**No external services required** — runs as a single binary on any Linux server.
+This is the Ruby on Rails rewrite of the original Go service (preserved in the
+repository history). Monitors and alert channels now live in the database and
+are managed in the dashboard; an existing `uptime.yaml` can be imported.
 
 ## Features
 
-- HTTP monitors — status code, optional body string check, response time threshold
-- HTTP POST/PUT with custom body and headers
-- TCP monitors — dial timeout
-- TLS certificate expiry alerts
-- DNS resolution checks with optional expected IP assertion
-- Discord / Slack webhook alerts
-- SMTP email alerts (multiple recipients, STARTTLS)
-- ntfy.sh push notifications
-- Gotify push notifications
-- Per-monitor alert routing
-- Maintenance windows (suppress alerts during scheduled downtime)
-- Alert cooldown (no spam on sustained outages)
-- Recovery alerts ("Main Website is back up, was down 12m 34s")
-- Embedded web dashboard with history sparklines and incident log
-- Public status page (no auth)
-- Prometheus `/metrics` endpoint
-- SQLite storage with configurable retention
-- Single static binary — no CGO, cross-compiles easily
+- HTTP monitors: status code, optional body text, custom method, body and headers
+- TCP monitors: connect within a timeout
+- TLS monitors: alert before a certificate in the chain expires
+- DNS monitors: the name resolves, optionally to an expected IP
+- Slow-response threshold on every monitor
+- Discord, Slack, email, ntfy and Gotify alert channels, with a "send test" button
+- Per-monitor alert routing (no channels selected alerts all of them)
+- Maintenance windows that pause checks and alerts
+- Alert cooldown during a sustained outage, and a recovery alert with the downtime
+- Dashboard with 24 hour, 7 day and 30 day uptime, response-time sparklines and an incident log
+- Public status page and Prometheus `/metrics`
 
----
+## Requirements
+
+- Ruby 4.0+
+- SQLite 3 (bundled via the `sqlite3` gem)
 
 ## Quick start
 
-```sh
-# Build
-make build
-
-# Create your config
-cp uptime.example.yaml uptime.yaml
-$EDITOR uptime.yaml
-
-# Run
-./arcline-uptime start --config uptime.yaml
-
-# One-off check without starting the daemon
-./arcline-uptime check --config uptime.yaml --monitor "Main Website"
-
-# List configured monitors
-./arcline-uptime list --config uptime.yaml
+```bash
+bin/setup --skip-server   # install gems and prepare the database
+cp .env.example .env      # then fill in your values
+bin/rails server          # dashboard on http://localhost:3000, or PORT if set
+bin/rails uptime:run      # in a second terminal: the scheduler that runs the checks
 ```
 
-Dashboard available at `http://localhost:8081` (configure `dashboard.listen`).
+The web server only shows results. Checks are made by the scheduler, so run
+exactly one `bin/rails uptime:run` process alongside it.
 
----
+## Importing an existing config
 
-## Installation (Linux server)
-
-### 1. Build or download the binary
-
-```sh
-# Build for the current system
-make build
-
-# Cross-compile for Linux amd64
-make linux-amd64
-
-# Cross-compile for Linux arm64
-make linux-arm64
+```bash
+bin/rails 'uptime:import[uptime.yaml]'
 ```
 
-### 2. Install
+This reads the YAML format of the Go version (see `uptime.example.yaml`) and
+creates or updates monitors, alert channels, routing and maintenance windows by
+name. Two things do not carry over:
 
-```sh
-# Create a dedicated user
-useradd -r -s /usr/sbin/nologin -d /opt/arcline-uptime arcline
+- `dashboard.username` / `dashboard.password`: set `UPTIME_USERNAME` and
+  `UPTIME_PASSWORD` instead.
+- Per-channel SMTP settings: email alerts are sent through the app's `SMTP_*`
+  settings. Recipients are imported.
 
-# Copy binary and config
-mkdir -p /opt/arcline-uptime
-install -m 0755 arcline-uptime /opt/arcline-uptime/arcline-uptime
-cp uptime.example.yaml /opt/arcline-uptime/uptime.yaml
-chown -R arcline:arcline /opt/arcline-uptime
+`global.alert_cooldown` and `global.retention_days` become
+`UPTIME_ALERT_COOLDOWN` and `UPTIME_RETENTION_DAYS`.
 
-# Edit your config
-$EDITOR /opt/arcline-uptime/uptime.yaml
-```
+## Commands
 
-### 3. Configure systemd
+| Command | What it does |
+|---|---|
+| `bin/rails uptime:run` | Run the scheduler until stopped |
+| `bin/rails uptime:check` | Probe every monitor once and print the results; exits 1 if any is down |
+| `bin/rails 'uptime:check[Main Website]'` | Probe one monitor by name |
+| `bin/rails uptime:list` | List configured monitors |
+| `bin/rails 'uptime:import[uptime.yaml]'` | Import a YAML config |
+| `bin/rails uptime:prune` | Delete checks older than `UPTIME_RETENTION_DAYS` (the scheduler also does this daily) |
 
-```sh
-cp arcline-uptime.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now arcline-uptime
-systemctl status arcline-uptime
-journalctl -u arcline-uptime -f
-```
+`uptime:check` only prints: it stores nothing and sends no alerts.
 
----
+## Environment variables
 
-## Configuration reference
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3000` | HTTP listen port (the original service used `8081`) |
+| `DATABASE_PATH` | `storage/<env>.sqlite3` | SQLite database file |
+| `UPTIME_USERNAME` | — | Dashboard username (HTTP basic auth) |
+| `UPTIME_PASSWORD` | — | Dashboard password |
+| `UPTIME_ALERT_COOLDOWN` | `300` | Seconds between repeat DOWN alerts for one outage |
+| `UPTIME_RETENTION_DAYS` | `0` | Delete checks older than this; `0` keeps them forever |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | — | SMTP server for email alert channels |
+| `SMTP_FROM` | `alerts@arclineit.com` | From address for email alerts |
 
-### `global`
+In production the dashboard refuses to load until `UPTIME_USERNAME` and
+`UPTIME_PASSWORD` are set. In development it is open when they are unset.
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `check_interval` | `60` | Seconds between checks (can be overridden per monitor) |
-| `timeout` | `10` | Seconds per probe (can be overridden per monitor) |
-| `alert_cooldown` | `300` | Seconds between repeat DOWN alerts for the same monitor |
-| `retention_days` | `0` | Delete check records older than this; `0` keeps forever |
-| `log_format` | `text` | `text` for human-readable, `json` for structured output |
+Webhook URLs and tokens for alert channels are stored in the database as
+entered, so protect the SQLite file like the YAML config it replaces.
 
-### `alerts`
+## Routes
 
-Each entry in the `alerts` list defines one notification channel.
-
-| Key | Required for | Description |
-|-----|-------------|-------------|
-| `name` | — | Optional name for per-monitor routing |
-| `type` | all | `discord`, `slack`, `email`, `ntfy`, `gotify` |
-| `webhook_url` | discord/slack | Full webhook URL |
-| `smtp_host` | email | SMTP server hostname |
-| `smtp_port` | email | SMTP port (587 for STARTTLS) |
-| `from` | email | Sender address |
-| `to` | email | Recipient(s); accepts a single string or a list |
-| `username` | email | SMTP auth username |
-| `password` | email | SMTP auth password |
-| `url` | ntfy/gotify | ntfy topic URL or Gotify server base URL |
-| `token` | ntfy/gotify | Bearer token (ntfy) or app token (Gotify) |
-| `priority` | gotify | Notification priority 1–10; default `5` |
-
-### `monitors`
-
-| Key | Type | Required | Description |
-|-----|------|----------|-------------|
-| `name` | string | ✓ | Unique display name |
-| `type` | string | ✓ | `http`, `tcp`, `tls`, `dns` |
-| `url` | string | http | Full URL to probe |
-| `method` | string | — | HTTP method; default `GET` |
-| `body` | string | — | HTTP request body |
-| `headers` | map | — | Additional HTTP request headers |
-| `expected_status` | int | — | Expected HTTP status code; default `200` |
-| `contains` | string | — | Assert response body contains this string |
-| `host` | string | tcp/tls/dns | Hostname |
-| `port` | int | tcp/tls | Port number |
-| `expiry_warning_days` | int | — | Alert when TLS cert expires within N days; default `14` |
-| `expected_ip` | string | — | DNS: assert this IP is in the results |
-| `max_response_ms` | int | — | Alert if response time exceeds this; `0` disables |
-| `interval` | int | — | Override global `check_interval` for this monitor |
-| `timeout` | int | — | Override global `timeout` for this monitor |
-| `alert_names` | list | — | Route alerts only to these named alerters; empty = all |
-| `maintenance` | list | — | Suppress alerts during these time windows |
-
-#### Maintenance windows
-
-```yaml
-maintenance:
-  - days: [mon, tue, wed, thu, fri]   # weekday names (3-letter), or "*" for all
-    start: "23:00"                     # HH:MM in server local time
-    end: "01:00"                       # supports overnight ranges
-```
-
-### `dashboard`
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `enabled` | `false` | Start the web dashboard |
-| `listen` | `:8081` | Address to listen on |
-| `username` | — | Basic auth username; leave empty to disable auth |
-| `password` | — | Basic auth password |
-
----
-
-## Dashboard routes
-
-| Route | Auth | Description |
-|-------|------|-------------|
-| `/` | ✓ | Current status table with 24h/7d/30d uptime |
-| `/history` | ✓ | Response time sparklines per monitor |
-| `/incidents` | ✓ | Incident log — all outage periods with duration |
-| `/metrics` | — | Prometheus-compatible text metrics |
-| `/status` | — | Public status page (no sensitive details) |
-
----
+| Route | Login | Description |
+|---|---|---|
+| `/` | yes | Monitors with current state and 24h / 7d / 30d uptime |
+| `/monitors/:id` | yes | One monitor: recent checks, maintenance windows, check now |
+| `/history` | yes | Response-time sparklines |
+| `/incidents` | yes | Outages with start, end and duration |
+| `/alert_channels` | yes | Alert channels |
+| `/status` | no | Public status page: names and uptime only |
+| `/metrics` | no | Prometheus text metrics |
+| `/up` | no | Health check |
 
 ## Alert formats
 
-**DOWN alert:**
 ```
 [DOWN] Main Website
 expected status 200, got 503
+Status code: 503
 Checked at 2026-03-21 14:32:01 UTC
 Response time: 8043ms
 ```
 
-**Recovery alert:**
 ```
 [UP] Main Website is back up
 Was down for 12m 34s
 Recovered at 2026-03-21 14:44:35 UTC
 ```
 
----
-
 ## Prometheus metrics
 
 ```
-# HELP arcline_uptime_up Whether the last check succeeded (1=up, 0=down)
 arcline_uptime_up{monitor="Main Website"} 1
-arcline_uptime_up{monitor="SSH"} 0
-
-# HELP arcline_uptime_response_ms Response time of the last check in milliseconds
 arcline_uptime_response_ms{monitor="Main Website"} 145
-
-# HELP arcline_uptime_uptime_24h Uptime percentage over the last 24 hours
 arcline_uptime_uptime_24h{monitor="Main Website"} 99.8600
-
-# HELP arcline_uptime_uptime_7d Uptime percentage over the last 7 days
 arcline_uptime_uptime_7d{monitor="Main Website"} 99.9200
 ```
 
----
+## Used by the portal
 
-## Building
+arcline-portal reads this app's database read-only (`UPTIME_DB_PATH` in the
+portal) to show customers their service status. It depends on the `monitors`
+table (`id`, `name`) and the `checks` table (`monitor_id`, `up`, `response_ms`,
+`checked_at`), so keep those columns if the schema changes.
 
-```sh
-make build          # binary in current directory
-make linux-amd64    # arcline-uptime-linux-amd64
-make linux-arm64    # arcline-uptime-linux-arm64
-make all            # both cross-compile targets
-make test           # run tests
-make clean          # remove binaries
+## Tests
+
+```bash
+bin/rails test
+bin/rubocop
+bin/brakeman
 ```
 
-No CGO is required. Cross-compilation works without a C toolchain.
+## Deployment
 
----
+The app ships with a `Dockerfile` and a Kamal config (`config/deploy.yml`) with
+two roles: `web` for the dashboard and `scheduler` for `bin/rails uptime:run`.
+Both must share the `storage/` volume that holds the SQLite database.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

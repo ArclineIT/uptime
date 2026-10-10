@@ -1,0 +1,47 @@
+<% content_for :title, "Alert channels — Arcline Uptime" %>
+
+<section class="page-header">
+  <div class="container">
+    <p class="eyebrow">Uptime</p>
+    <h1 class="page-header__title">Alert channels</h1>
+    <p class="lead">Where DOWN and recovery alerts are sent.</p>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="container">
+    <div class="dash">
+      <div class="dash-actions"><%= link_to "Add channel", new_alert_channel_path, class: "btn btn--primary btn--sm" %></div>
+      <div class="panel">
+        <% if @channels.any? %>
+          <div class="table-wrap">
+            <table class="inv-table">
+              <thead>
+                <tr>
+                  <th class="inv-table__th">Name</th>
+                  <th class="inv-table__th">Type</th>
+                  <th class="inv-table__th">Destination</th>
+                  <th class="inv-table__th"><span class="visually-hidden">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @channels.each do |channel| %>
+                  <tr class="inv-table__row">
+                    <td class="inv-table__td"><%= link_to channel.name, edit_alert_channel_path(channel) %></td>
+                    <td class="inv-table__td inv-table__td--muted"><%= channel.kind %></td>
+                    <td class="inv-table__td inv-table__td--muted"><%= channel.email? ? channel.recipient_list.join(", ") : URI.parse(channel.url).host %></td>
+                    <td class="inv-table__td inv-table__td--right">
+                      <%= button_to "Send test", test_alert_channel_path(channel), class: "btn btn--ghost btn--sm" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="panel__body"><p class="dash-empty">No alert channels. Outages are recorded but nobody is told.</p></div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</section>

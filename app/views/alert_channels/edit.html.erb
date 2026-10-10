@@ -1,0 +1,14 @@
+<% content_for :title, "Edit alert channel — Arcline Uptime" %>
+
+<section class="page-header">
+  <div class="container">
+    <p class="eyebrow"><%= link_to "Alert channels", alert_channels_path %></p>
+    <h1 class="page-header__title"><%= @channel.name_was %></h1>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="container">
+    <%= render "form" %>
+  </div>
+</section>

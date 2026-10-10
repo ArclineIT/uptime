@@ -1,0 +1,100 @@
+<%= form_with model: @monitor, url: @monitor.persisted? ? monitor_path(@monitor) : monitors_path, class: "form",
+      data: { controller: "kind" } do |form| %>
+  <%= form_errors @monitor %>
+
+  <div class="form__row">
+    <div class="field">
+      <%= form.label :name %>
+      <%= form.text_field :name, required: true, placeholder: "Main Website" %>
+    </div>
+    <div class="field">
+      <%= form.label :kind, "Type" %>
+      <%= form.select :kind, UptimeMonitor::KINDS.map { |kind| [ kind.upcase, kind ] }, {},
+            data: { kind_target: "select", action: "kind#update" } %>
+    </div>
+  </div>
+
+  <div data-kind-target="group" data-kinds="http" class="form__group">
+    <div class="form__row">
+      <div class="field">
+        <%= form.label :url, "URL" %>
+        <%= form.url_field :url, placeholder: "https://example.com" %>
+      </div>
+      <div class="field">
+        <%= form.label :http_method, "Method" %>
+        <%= form.select :http_method, UptimeMonitor::HTTP_METHODS %>
+      </div>
+    </div>
+    <div class="form__row">
+      <div class="field">
+        <%= form.label :expected_status, "Expected status" %>
+        <%= form.number_field :expected_status, min: 100, max: 599 %>
+        <p class="field__hint">A 3xx status checks the redirect itself instead of following it.</p>
+      </div>
+      <div class="field">
+        <%= form.label :contains do %>Body contains <span class="field__optional">(optional)</span><% end %>
+        <%= form.text_field :contains %>
+      </div>
+    </div>
+    <div class="form__row">
+      <div class="field">
+        <%= form.label :headers_text do %>Headers <span class="field__optional">(one “Name: value” per line)</span><% end %>
+        <%= form.text_area :headers_text, rows: 3, spellcheck: false %>
+      </div>
+      <div class="field">
+        <%= form.label :body do %>Request body <span class="field__optional">(optional)</span><% end %>
+        <%= form.text_area :body, rows: 3, spellcheck: false %>
+      </div>
+    </div>
+  </div>
+
+  <div data-kind-target="group" data-kinds="tcp tls dns" class="form__group">
+    <div class="form__row">
+      <div class="field">
+        <%= form.label :host %>
+        <%= form.text_field :host, placeholder: "server1.example.com", autocapitalize: "none" %>
+      </div>
+      <div class="field" data-kind-target="group" data-kinds="tcp tls">
+        <%= form.label :port %>
+        <%= form.number_field :port, min: 1, max: 65_535, placeholder: "443" %>
+      </div>
+      <div class="field" data-kind-target="group" data-kinds="tls">
+        <%= form.label :expiry_warning_days, "Warn when certificate expires within (days)" %>
+        <%= form.number_field :expiry_warning_days, min: 0 %>
+      </div>
+      <div class="field" data-kind-target="group" data-kinds="dns">
+        <%= form.label :expected_ip do %>Expected IP <span class="field__optional">(optional)</span><% end %>
+        <%= form.text_field :expected_ip %>
+      </div>
+    </div>
+  </div>
+
+  <div class="form__row">
+    <div class="field">
+      <%= form.label :interval, "Check every (seconds)" %>
+      <%= form.number_field :interval, min: 5, required: true %>
+    </div>
+    <div class="field">
+      <%= form.label :timeout, "Timeout (seconds)" %>
+      <%= form.number_field :timeout, min: 1, max: 120, required: true %>
+    </div>
+    <div class="field">
+      <%= form.label :max_response_ms, "Slow threshold (ms)" %>
+      <%= form.number_field :max_response_ms, min: 0 %>
+      <p class="field__hint">0 turns it off.</p>
+    </div>
+  </div>
+
+  <% if AlertChannel.any? %>
+    <fieldset class="checks">
+      <legend>Alert channels <span class="field__optional">(none selected alerts every channel)</span></legend>
+      <%= form.collection_check_boxes :alert_channel_ids, AlertChannel.ordered, :id, :name do |box| %>
+        <%= box.label(class: "check") { box.check_box + box.text } %>
+      <% end %>
+    </fieldset>
+  <% end %>
+
+  <label class="check"><%= form.check_box :enabled %> Enabled</label>
+
+  <%= form.submit @monitor.persisted? ? "Save monitor" : "Add monitor", class: "btn btn--primary" %>
+<% end %>

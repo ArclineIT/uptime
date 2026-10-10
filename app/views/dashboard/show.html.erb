@@ -1,0 +1,61 @@
+<% content_for :title, "Monitors — Arcline Uptime" %>
+
+<section class="page-header">
+  <div class="container">
+    <p class="eyebrow">Uptime</p>
+    <h1 class="page-header__title">Monitors</h1>
+    <p class="lead"><%= pluralize(@statuses.count { |s| s.state == "down" }, "monitor") %> down of <%= @statuses.size %>.</p>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="container">
+    <div class="dash">
+      <div class="dash-actions"><%= link_to "Add monitor", new_monitor_path, class: "btn btn--primary btn--sm" %></div>
+
+      <div class="panel">
+        <% if @statuses.any? %>
+          <div class="table-wrap">
+            <table class="inv-table">
+              <thead>
+                <tr>
+                  <th class="inv-table__th">Monitor</th>
+                  <th class="inv-table__th">Status</th>
+                  <th class="inv-table__th inv-table__th--right">Response</th>
+                  <th class="inv-table__th inv-table__th--right">24h</th>
+                  <th class="inv-table__th inv-table__th--right">7d</th>
+                  <th class="inv-table__th inv-table__th--right">30d</th>
+                  <th class="inv-table__th">Last checked</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @statuses.each do |status| %>
+                  <tr class="inv-table__row">
+                    <td class="inv-table__td">
+                      <%= link_to status.name, monitor_path(status.monitor) %>
+                      <span class="cell-note"><%= status.monitor.kind %> · <%= status.monitor.target %><%= " · disabled" unless status.monitor.enabled? %></span>
+                    </td>
+                    <td class="inv-table__td">
+                      <span class="status-badge status-badge--<%= state_class(status.state) %>"><%= status.state %></span>
+                      <% if status.check&.error.present? %><span class="cell-note"><%= status.check.error %></span><% end %>
+                    </td>
+                    <td class="inv-table__td inv-table__td--right inv-table__td--muted"><%= status.check ? "#{status.response_ms} ms" : "—" %></td>
+                    <td class="inv-table__td inv-table__td--right"><%= percent status.uptime_24h %></td>
+                    <td class="inv-table__td inv-table__td--right"><%= percent status.uptime_7d %></td>
+                    <td class="inv-table__td inv-table__td--right"><%= percent status.uptime_30d %></td>
+                    <td class="inv-table__td inv-table__td--muted"><%= status.check ? "#{time_ago_in_words(status.check.checked_at)} ago" : "Never" %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="panel__body">
+            <p class="dash-empty">No monitors yet.</p>
+            <p class="dash-empty-sub"><%= link_to "Add your first monitor", new_monitor_path, class: "link-arrow" %>, or import a config with <code>bin/rails 'uptime:import[uptime.yaml]'</code>.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</section>

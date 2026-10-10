@@ -1,0 +1,49 @@
+<%= form_with model: @channel, class: "form", data: { controller: "kind" } do |form| %>
+  <%= form_errors @channel %>
+
+  <div class="form__row">
+    <div class="field">
+      <%= form.label :name %>
+      <%= form.text_field :name, required: true, placeholder: "discord-ops" %>
+    </div>
+    <div class="field">
+      <%= form.label :kind, "Type" %>
+      <%= form.select :kind, AlertChannel::KINDS.map { |kind| [ kind.capitalize, kind ] }, {},
+            data: { kind_target: "select", action: "kind#update" } %>
+    </div>
+  </div>
+
+  <div class="field" data-kind-target="group" data-kinds="discord slack ntfy gotify">
+    <%= form.label :url, "URL" %>
+    <%= form.url_field :url, placeholder: "https://" %>
+    <p class="field__hint">Discord or Slack: the webhook URL. ntfy: the full topic URL. Gotify: the server's base URL.</p>
+  </div>
+
+  <div class="form__row" data-kind-target="group" data-kinds="ntfy gotify">
+    <div class="field">
+      <%= form.label :token do %>Token <span class="field__optional"><%= @channel.persisted? ? "(leave blank to keep the current one)" : "(optional for ntfy)" %></span><% end %>
+      <%= form.password_field :token, autocomplete: "off" %>
+    </div>
+    <div class="field" data-kind-target="group" data-kinds="gotify">
+      <%= form.label :priority, "Priority (1–10)" %>
+      <%= form.number_field :priority, min: 1, max: 10 %>
+    </div>
+  </div>
+
+  <div class="field" data-kind-target="group" data-kinds="email">
+    <%= form.label :recipients %>
+    <%= form.text_area :recipients, rows: 2, placeholder: "ops@example.com, oncall@example.com" %>
+    <p class="field__hint">Sent through the app's SMTP settings (SMTP_HOST and friends).</p>
+  </div>
+
+  <div class="dash-actions dash-actions--row">
+    <%= form.submit @channel.persisted? ? "Save channel" : "Add channel", class: "btn btn--primary" %>
+  </div>
+<% end %>
+
+<% if @channel.persisted? %>
+  <div class="dash-actions">
+    <%= button_to "Delete channel", alert_channel_path(@channel), method: :delete, class: "btn btn--danger btn--sm",
+          data: { turbo_confirm: "Delete #{@channel.name}?" } %>
+  </div>
+<% end %>

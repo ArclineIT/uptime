@@ -1,0 +1,45 @@
+<% content_for :title, "Incidents — Arcline Uptime" %>
+
+<section class="page-header">
+  <div class="container">
+    <p class="eyebrow">Uptime</p>
+    <h1 class="page-header__title">Incidents</h1>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="container">
+    <div class="panel">
+      <% if @incidents.any? %>
+        <div class="table-wrap">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th class="inv-table__th">Monitor</th>
+                <th class="inv-table__th">Started</th>
+                <th class="inv-table__th">Resolved</th>
+                <th class="inv-table__th">Duration</th>
+                <th class="inv-table__th">Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @incidents.each do |incident| %>
+                <tr class="inv-table__row">
+                  <td class="inv-table__td"><%= link_to incident.monitor.name, monitor_path(incident.monitor) %></td>
+                  <td class="inv-table__td inv-table__td--muted"><%= format_time incident.started_at %></td>
+                  <td class="inv-table__td inv-table__td--muted">
+                    <% if incident.ongoing? %><span class="status-badge status-badge--crit">ongoing</span><% else %><%= format_time incident.resolved_at %><% end %>
+                  </td>
+                  <td class="inv-table__td"><%= AlertPolicy.format_duration(incident.duration) %></td>
+                  <td class="inv-table__td inv-table__td--muted"><%= incident.reason.presence || "—" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="panel__body"><p class="dash-empty">No incidents recorded.</p></div>
+      <% end %>
+    </div>
+  </div>
+</section>

@@ -4,13 +4,18 @@ Polls HTTP/TCP/TLS/DNS endpoints on a schedule, stores results in SQLite, sends 
 via webhook (Discord, Slack), email, ntfy, or Gotify. Single binary, no external services.
 
 ## Stack
-- Language: Go
-- Storage: SQLite (via modernc.org/sqlite — pure Go, no CGO)
-- Config: YAML
+- Ruby on Rails 8.1 + Hotwire (Arcline design system)
+- Storage: SQLite
+- Config: monitors and alert channels in the database, managed in the dashboard (YAML import)
 - Alerts: Discord/Slack webhook, SMTP email, ntfy.sh, Gotify
-- UI: embedded web dashboard (net/http + Go templates)
+- Scheduler: `bin/rails uptime:run`
 
 ## Done
+- [x] Port from Go to Ruby on Rails
+- [x] Manage monitors, alert channels and maintenance windows in the dashboard
+- [x] Import an existing YAML config (`uptime:import`)
+- [x] `test-alert`: send a test alert from the alert channels page
+- [x] Per-monitor detail page with recent checks and a check-now button
 - [x] Project scaffold
 - [x] YAML config parser
 - [x] HTTP monitor (status code, body contains, response time threshold)
@@ -36,11 +41,9 @@ via webhook (Discord, Slack), email, ntfy, or Gotify. Single binary, no external
 - [x] Public status page (no auth)
 - [x] /metrics Prometheus endpoint (up, response_ms, uptime_24h, uptime_7d)
 - [x] Basic auth for dashboard
-- [x] systemd unit file example
+- [x] Dockerfile + Kamal deploy config (web and scheduler roles)
 - [x] README with self-hosting guide
-- [x] Cross-compile Makefile
-- [x] Structured logging (slog, text or JSON)
-- [x] `start`, `check`, `list`, `version` CLI subcommands
+- [x] `run`, `check`, `list`, `import`, `prune` rake tasks
 
 ## Ideas
 - [ ] ICMP/ping monitor
@@ -51,14 +54,12 @@ via webhook (Discord, Slack), email, ntfy, or Gotify. Single binary, no external
 - [ ] Telegram alerter
 - [ ] PagerDuty alerter
 - [ ] Escalation policy (alert A immediately, alert B after N minutes still down)
-- [ ] `test-alert` subcommand
 - [ ] `validate` subcommand (parse config, print summary, exit non-zero on errors)
 - [ ] `--dry-run` flag for start (run checks, no alerts)
-- [ ] Per-monitor detail page with full history and time-axis chart
+- [ ] Time-axis chart on the monitor page
 - [ ] Uptime calendar heatmap (GitHub-style, per day)
 - [ ] CSV / JSON export of check history
 - [ ] JSON API (/api/v1/monitors, /api/v1/monitors/{name}/checks)
-- [ ] Environment variable substitution in config (${VAR})
-- [ ] Config hot-reload on SIGHUP
+- [ ] Encrypt channel tokens and webhook URLs at rest
 - [ ] TLS for the dashboard itself
 - [ ] Database backup command

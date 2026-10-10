@@ -1,0 +1,28 @@
+<% content_for :title, "Status — Arcline" %>
+<% content_for :public, "1" %>
+
+<section class="page-header">
+  <div class="container">
+    <p class="eyebrow">Status</p>
+    <h1 class="page-header__title"><%= @all_up ? "All systems operational" : "Some systems are having problems" %></h1>
+    <p class="lead">Updated <%= format_time Time.current %></p>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="container">
+    <div class="panel">
+      <div class="panel__body">
+        <% @statuses.each do |status| %>
+          <div class="status-row">
+            <span class="status-row__label"><%= status.name %></span>
+            <span class="status-row__dots" aria-hidden="true"></span>
+            <span class="status-row__value"><%= percent status.uptime_24h %> <span class="cell-note cell-note--inline">24h</span></span>
+            <span class="status-badge status-badge--<%= state_class(status.state) %>"><%= { "up" => "operational", "down" => "outage", "pending" => "no data" }.fetch(status.state) %></span>
+          </div>
+        <% end %>
+        <% if @statuses.empty? %><p class="dash-empty">Nothing is being monitored yet.</p><% end %>
+      </div>
+    </div>
+  </div>
+</section>

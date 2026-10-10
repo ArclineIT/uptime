@@ -1,0 +1,9 @@
+discord:
+  name: discord-ops
+  kind: discord
+  url: https://discord.test/api/webhooks/1/abc
+
+email:
+  name: email-blake
+  kind: email
+  recipients: "blake@example.test, oncall@example.test"

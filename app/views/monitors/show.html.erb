@@ -1,0 +1,110 @@
+<% content_for :title, "#{@monitor.name} — Arcline Uptime" %>
+<% latest = @checks.first %>
+
+<section class="page-header">
+  <div class="container">
+    <p class="eyebrow"><%= link_to "Monitors", root_path %></p>
+    <h1 class="page-header__title"><%= @monitor.name %></h1>
+    <p class="lead"><%= @monitor.kind.upcase %> · <%= @monitor.target %> · every <%= @monitor.interval %>s<%= " · disabled" unless @monitor.enabled? %></p>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="container">
+    <div class="dash">
+      <div class="dash-actions dash-actions--row">
+        <%= button_to "Check now", check_monitor_path(@monitor), class: "btn btn--primary btn--sm" %>
+        <%= link_to "Edit", edit_monitor_path(@monitor), class: "btn btn--ghost btn--sm" %>
+        <%= button_to "Delete", monitor_path(@monitor), method: :delete, class: "btn btn--danger btn--sm",
+              data: { turbo_confirm: "Delete #{@monitor.name} and its history?" } %>
+      </div>
+
+      <div class="panel">
+        <div class="panel__body">
+          <div class="status-row">
+            <span class="status-row__label">Status</span><span class="status-row__dots" aria-hidden="true"></span>
+            <% state = latest.nil? ? "pending" : (latest.up? ? "up" : "down") %>
+            <span class="status-badge status-badge--<%= state_class(state) %>"><%= state %></span>
+          </div>
+          <% [ [ "24 hours", 24.hours ], [ "7 days", 7.days ], [ "30 days", 30.days ] ].each do |label, span| %>
+            <div class="status-row">
+              <span class="status-row__label">Uptime, <%= label %></span><span class="status-row__dots" aria-hidden="true"></span>
+              <span class="status-row__value"><%= percent @monitor.uptime_percent(span.ago) %></span>
+            </div>
+          <% end %>
+          <div class="status-row">
+            <span class="status-row__label">Alerts go to</span><span class="status-row__dots" aria-hidden="true"></span>
+            <span class="status-row__value"><%= @monitor.alert_channels.any? ? @monitor.alert_channels.map(&:name).to_sentence : "every channel" %></span>
+          </div>
+        </div>
+      </div>
+
+      <section class="dash-section">
+        <h2 class="dash-section__title">maintenance windows</h2>
+        <div class="panel">
+          <div class="panel__body">
+            <% @monitor.maintenance_windows.select(&:persisted?).each do |window| %>
+              <div class="status-row">
+                <span class="status-row__label"><%= window %></span><span class="status-row__dots" aria-hidden="true"></span>
+                <%= button_to "Remove", monitor_maintenance_window_path(@monitor, window), method: :delete, class: "btn btn--danger btn--sm" %>
+              </div>
+            <% end %>
+            <%= form_with model: @window, url: monitor_maintenance_windows_path(@monitor), class: "form" do |form| %>
+              <div class="form__row">
+                <div class="field">
+                  <%= form.label :days %>
+                  <%= form.text_field :days, placeholder: "sat,sun or *", value: nil %>
+                  <p class="field__hint">Three-letter days separated by commas, or * for every day.</p>
+                </div>
+                <div class="field">
+                  <%= form.label :starts_at, "Start (HH:MM)" %>
+                  <%= form.text_field :starts_at, required: true, placeholder: "02:00", pattern: "[0-2]?[0-9]:[0-5][0-9]" %>
+                </div>
+                <div class="field">
+                  <%= form.label :ends_at, "End (HH:MM)" %>
+                  <%= form.text_field :ends_at, required: true, placeholder: "06:00", pattern: "[0-2]?[0-9]:[0-5][0-9]" %>
+                </div>
+              </div>
+              <p class="field__hint">Server time (<%= Time.zone.name %>). Checks and alerts pause during a window.</p>
+              <%= form.submit "Add window", class: "btn btn--ghost btn--sm" %>
+            <% end %>
+          </div>
+        </div>
+      </section>
+
+      <section class="dash-section">
+        <h2 class="dash-section__title">recent checks</h2>
+        <div class="panel">
+          <% if @checks.any? %>
+            <div class="table-wrap">
+              <table class="inv-table">
+                <thead>
+                  <tr>
+                    <th class="inv-table__th">Checked</th>
+                    <th class="inv-table__th">Result</th>
+                    <th class="inv-table__th inv-table__th--right">Status code</th>
+                    <th class="inv-table__th inv-table__th--right">Response</th>
+                    <th class="inv-table__th">Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @checks.each do |check| %>
+                    <tr class="inv-table__row">
+                      <td class="inv-table__td inv-table__td--muted"><%= format_time check.checked_at %></td>
+                      <td class="inv-table__td"><span class="status-badge status-badge--<%= check.up? ? "ok" : "crit" %>"><%= check.up? ? "up" : "down" %></span></td>
+                      <td class="inv-table__td inv-table__td--right inv-table__td--muted"><%= check.status_code.zero? ? "—" : check.status_code %></td>
+                      <td class="inv-table__td inv-table__td--right"><%= check.response_ms %> ms</td>
+                      <td class="inv-table__td inv-table__td--muted"><%= check.error.presence || "—" %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <div class="panel__body"><p class="dash-empty">No checks yet. The scheduler (<code>bin/rails uptime:run</code>) records them.</p></div>
+          <% end %>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
