@@ -82,7 +82,7 @@ name. Two things do not carry over:
 | `UPTIME_ALERT_COOLDOWN` | `300` | Seconds between repeat DOWN alerts for one outage |
 | `UPTIME_RETENTION_DAYS` | `0` | Delete checks older than this; `0` keeps them forever |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | — | SMTP server for email alert channels |
-| `SMTP_FROM` | `alerts@arclineit.com` | From address for email alerts |
+| `SMTP_FROM` | `alerts@arcline.it` | From address for email alerts |
 
 In production the dashboard refuses to load until `UPTIME_USERNAME` and
 `UPTIME_PASSWORD` are set. In development it is open when they are unset.

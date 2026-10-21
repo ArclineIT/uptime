@@ -12,13 +12,13 @@ alerts:
 
   - name: email-blake
     type: email
-    smtp_host: mail.arclineit.com
+    smtp_host: mail.arcline.it
     smtp_port: 587
-    from: alerts@arclineit.com
+    from: alerts@arcline.it
     to:
-      - blake@arclineit.com
-      - oncall@arclineit.com
-    username: alerts@arclineit.com
+      - blake@arcline.it
+      - oncall@arcline.it
+    username: alerts@arcline.it
     password: yourpassword
 
   - name: ntfy-push
@@ -28,14 +28,14 @@ alerts:
 
   - name: gotify-push
     type: gotify
-    url: "https://gotify.arclineit.com"
+    url: "https://gotify.arcline.it"
     token: "your-app-token"
     priority: 7   # 1–10; defaults to 5
 
 monitors:
   - name: "Main Website"
     type: http
-    url: "https://arclineit.com"
+    url: "https://arcline.it"
     expected_status: 200
     contains: "[arcline]"          # optional: assert string appears in response body
     max_response_ms: 3000          # alert if response takes longer than 3s
@@ -44,13 +44,13 @@ monitors:
 
   - name: "Control Panel"
     type: http
-    url: "https://cp.arclineit.com"
+    url: "https://cp.arcline.it"
     expected_status: 200
     interval: 60
 
   - name: "API Health Check"
     type: http
-    url: "https://api.arclineit.com/health"
+    url: "https://api.arcline.it/health"
     method: POST
     body: '{"ping":true}'
     headers:
@@ -60,30 +60,30 @@ monitors:
 
   - name: "SSH"
     type: tcp
-    host: "server1.arclineit.com"
+    host: "server1.arcline.it"
     port: 22
     interval: 30          # check SSH more frequently
 
   - name: "Mail Server"
     type: tcp
-    host: "mail.arclineit.com"
+    host: "mail.arcline.it"
     port: 587
 
   - name: "Main Website TLS"
     type: tls
-    host: "arclineit.com"
+    host: "arcline.it"
     port: 443
     expiry_warning_days: 21      # alert when cert expires in < 21 days
     interval: 3600               # check TLS once per hour
 
-  - name: "DNS arclineit.com"
+  - name: "DNS arcline.it"
     type: dns
-    host: "arclineit.com"
+    host: "arcline.it"
     expected_ip: "203.0.113.10"  # optional: assert this IP is in the results
 
   - name: "Backup Server SSH"
     type: tcp
-    host: "backup.arclineit.com"
+    host: "backup.arcline.it"
     port: 22
     alert_names: [email-blake]   # only notify via email for this one
     maintenance:

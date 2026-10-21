@@ -13,7 +13,7 @@ class ConfigImportTest < ActiveSupport::TestCase
     assert_equal 4, summary[:channels]
 
     site = UptimeMonitor.find_by!(name: "Main Website")
-    assert_equal [ "http", "https://arclineit.com", 3000 ], [ site.kind, site.url, site.max_response_ms ]
+    assert_equal [ "http", "https://arcline.it", 3000 ], [ site.kind, site.url, site.max_response_ms ]
     assert_equal %w[ discord-ops email-blake ], site.alert_channels.map(&:name).sort
 
     api = UptimeMonitor.find_by!(name: "API Health Check")
@@ -24,7 +24,7 @@ class ConfigImportTest < ActiveSupport::TestCase
     assert_equal "sat,sun 02:00–06:00", UptimeMonitor.find_by!(name: "Backup Server SSH").maintenance_windows.first.to_s.sub(", ", ",")
 
     email = AlertChannel.find_by!(name: "email-blake")
-    assert_equal %w[ blake@arclineit.com oncall@arclineit.com ], email.recipient_list
+    assert_equal %w[ blake@arcline.it oncall@arcline.it ], email.recipient_list
     assert_equal 7, AlertChannel.find_by!(name: "gotify-push").priority
   end
 
